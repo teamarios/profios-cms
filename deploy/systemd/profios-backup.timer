@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Profios backup every 6 hours
+
+[Timer]
+OnBootSec=15min
+OnUnitActiveSec=6h
+Unit=profios-backup.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target

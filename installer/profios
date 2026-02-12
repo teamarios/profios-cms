@@ -11,7 +11,7 @@ usage() {
 Profios CMS Installer CLI
 
 Usage:
-  profios install [--mode docker|native] [--webserver nginx|apache] [--domain example.com] [--email you@example.com] [--app-dir /opt/profios-cms]
+  profios install [--mode docker|native] [--webserver nginx|apache|hybrid] [--domain example.com] [--email you@example.com] [--app-dir /opt/profios-cms]
   profios doctor [--mode docker|native] [--app-dir /opt/profios-cms]
   profios rollback [--app-dir /opt/profios-cms] [--backup /var/backups/profios-cms/<file>.tar.gz]
   profios package [version]
@@ -73,7 +73,7 @@ run_install() {
   prompt_if_empty app_dir "App directory" "/opt/profios-cms"
 
   if [[ "$mode" == "native" ]]; then
-    prompt_if_empty webserver "Web server (nginx/apache)" "nginx"
+    prompt_if_empty webserver "Web server (nginx/apache/hybrid)" "nginx"
     prompt_if_empty domain "Domain (optional for SSL)" ""
     if [[ -n "$domain" ]]; then
       prompt_if_empty email "Let's Encrypt email" "admin@example.com"

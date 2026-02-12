@@ -2,8 +2,25 @@
 $old = $_SESSION['setup_old'] ?? [];
 unset($_SESSION['setup_old']);
 $values = array_merge($defaults ?? [], $old);
+$autoCreds = ($values['stack_auto_credentials'] ?? 'false') === 'true';
 ?>
 <div class="container py-4" style="max-width: 900px;">
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+            <h2 class="h5 mb-2">Post-Install SEO and Tracking Checklist</h2>
+            <ol class="mb-0">
+                <li>Complete installation and login to `/admin`.</li>
+                <li>Open `SEO, Analytics & Security` settings.</li>
+                <li>Add Search Console verification token.</li>
+                <li>Add GA4 Measurement ID and SGTM transport URL.</li>
+                <li>Add GTM container and server GTM URL.</li>
+                <li>Add Sentry DSN, environment, release, and sample rate.</li>
+                <li>Review production toggles: CDN, OPcache, Brotli/Gzip, non-prod noindex.</li>
+                <li>Open `Performance Center` and apply all recommended toggles.</li>
+            </ol>
+        </div>
+    </div>
+
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-body">
             <h2 class="h5 mb-2">Server Stack Installation Progress</h2>
@@ -53,26 +70,37 @@ $values = array_merge($defaults ?? [], $old);
                 </div>
 
                 <div class="col-12"><h2 class="h5 mt-3">Database</h2></div>
-                <div class="col-md-4">
-                    <label class="form-label">DB Host</label>
-                    <input name="db_host" class="form-control" required value="<?= e($values['db_host'] ?? '') ?>">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Port</label>
-                    <input name="db_port" class="form-control" required value="<?= e($values['db_port'] ?? '') ?>">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Database</label>
-                    <input name="db_name" class="form-control" required value="<?= e($values['db_name'] ?? '') ?>">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Username</label>
-                    <input name="db_user" class="form-control" required value="<?= e($values['db_user'] ?? '') ?>">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Password</label>
-                    <input name="db_pass" type="password" class="form-control" value="<?= e($values['db_pass'] ?? '') ?>">
-                </div>
+                <?php if ($autoCreds): ?>
+                    <div class="col-12">
+                        <div class="alert alert-info mb-0">Database credentials were auto-generated and pre-configured by stack installer.</div>
+                        <input type="hidden" name="db_host" value="<?= e($values['db_host'] ?? '') ?>">
+                        <input type="hidden" name="db_port" value="<?= e($values['db_port'] ?? '') ?>">
+                        <input type="hidden" name="db_name" value="<?= e($values['db_name'] ?? '') ?>">
+                        <input type="hidden" name="db_user" value="<?= e($values['db_user'] ?? '') ?>">
+                        <input type="hidden" name="db_pass" value="<?= e($values['db_pass'] ?? '') ?>">
+                    </div>
+                <?php else: ?>
+                    <div class="col-md-4">
+                        <label class="form-label">DB Host</label>
+                        <input name="db_host" class="form-control" required value="<?= e($values['db_host'] ?? '') ?>">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Port</label>
+                        <input name="db_port" class="form-control" required value="<?= e($values['db_port'] ?? '') ?>">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Database</label>
+                        <input name="db_name" class="form-control" required value="<?= e($values['db_name'] ?? '') ?>">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Username</label>
+                        <input name="db_user" class="form-control" required value="<?= e($values['db_user'] ?? '') ?>">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Password</label>
+                        <input name="db_pass" type="password" class="form-control" value="<?= e($values['db_pass'] ?? '') ?>">
+                    </div>
+                <?php endif; ?>
 
                 <div class="col-12"><h2 class="h5 mt-3">Admin Account</h2></div>
                 <div class="col-md-4">
@@ -123,26 +151,45 @@ $values = array_merge($defaults ?? [], $old);
                     <label class="form-label">Frontend Cache Strategy</label>
                     <input name="frontend_cache_driver" class="form-control" value="<?= e($values['frontend_cache_driver'] ?? 'varnish') ?>">
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label">Session Name</label>
-                    <input name="session_name" class="form-control" value="<?= e($values['session_name'] ?? 'profios_cms_session') ?>">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Redis Host</label>
-                    <input name="redis_host" class="form-control" value="<?= e($values['redis_host'] ?? '127.0.0.1') ?>">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Redis Port</label>
-                    <input name="redis_port" class="form-control" value="<?= e($values['redis_port'] ?? '6379') ?>">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Redis DB</label>
-                    <input name="redis_db" class="form-control" value="<?= e($values['redis_db'] ?? '0') ?>">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Redis Password</label>
-                    <input name="redis_pass" type="password" class="form-control" value="<?= e($values['redis_pass'] ?? '') ?>">
-                </div>
+                <?php if ($autoCreds): ?>
+                    <div class="col-md-4">
+                        <label class="form-label">Session Name</label>
+                        <input class="form-control" value="<?= e($values['session_name'] ?? '') ?>" readonly>
+                        <input type="hidden" name="session_name" value="<?= e($values['session_name'] ?? '') ?>">
+                        <small class="text-muted">Auto-generated by installer.</small>
+                    </div>
+                <?php else: ?>
+                    <div class="col-md-4">
+                        <label class="form-label">Session Name</label>
+                        <input name="session_name" class="form-control" value="<?= e($values['session_name'] ?? 'profios_cms_session') ?>">
+                    </div>
+                <?php endif; ?>
+                <?php if ($autoCreds): ?>
+                    <div class="col-12">
+                        <div class="alert alert-info mb-0">Redis credentials were auto-generated and pre-configured by stack installer.</div>
+                        <input type="hidden" name="redis_host" value="<?= e($values['redis_host'] ?? '127.0.0.1') ?>">
+                        <input type="hidden" name="redis_port" value="<?= e($values['redis_port'] ?? '6379') ?>">
+                        <input type="hidden" name="redis_db" value="<?= e($values['redis_db'] ?? '0') ?>">
+                        <input type="hidden" name="redis_pass" value="<?= e($values['redis_pass'] ?? '') ?>">
+                    </div>
+                <?php else: ?>
+                    <div class="col-md-4">
+                        <label class="form-label">Redis Host</label>
+                        <input name="redis_host" class="form-control" value="<?= e($values['redis_host'] ?? '127.0.0.1') ?>">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Redis Port</label>
+                        <input name="redis_port" class="form-control" value="<?= e($values['redis_port'] ?? '6379') ?>">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Redis DB</label>
+                        <input name="redis_db" class="form-control" value="<?= e($values['redis_db'] ?? '0') ?>">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Redis Password</label>
+                        <input name="redis_pass" type="password" class="form-control" value="<?= e($values['redis_pass'] ?? '') ?>">
+                    </div>
+                <?php endif; ?>
 
                 <div class="col-12 mt-4">
                     <button class="btn btn-primary btn-lg" type="submit">Install CMS</button>

@@ -1,7 +1,7 @@
 <?php $s = $settings ?? []; ?>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h3 mb-0">SEO & Security Settings</h1>
+    <h1 class="h3 mb-0">SEO, Analytics & Security Settings</h1>
 </div>
 
 <?php if (!empty($_SESSION['flash_success'])): ?>
@@ -19,16 +19,23 @@
     <div class="col-12">
         <div class="card border-0 shadow-sm">
             <div class="card-body">
-                <h2 class="h5">Tracking and Code Injection</h2>
+                <h2 class="h5">Tracking, Search Console and Tag Delivery</h2>
                 <div class="mb-3">
-                    <label class="form-label">Header Code (GA4, Search Console, Pixels)</label>
-                    <textarea class="form-control" name="seo_header_code" rows="5" placeholder="<script>...</script>"><?= e($s['seo_header_code'] ?? '') ?></textarea>
+                    <label class="form-label">Google Site Verification Code</label>
+                    <input class="form-control" name="google_site_verification" placeholder="abc123XYZ" value="<?= e($s['google_site_verification'] ?? '') ?>">
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Footer Code</label>
-                    <textarea class="form-control" name="seo_footer_code" rows="5" placeholder="<script>...</script>"><?= e($s['seo_footer_code'] ?? '') ?></textarea>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">GA4 Measurement ID</label>
+                        <input class="form-control" name="ga4_measurement_id" placeholder="G-XXXXXXXXXX" value="<?= e($s['ga4_measurement_id'] ?? '') ?>">
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">GA4 Transport URL (SGTM endpoint)</label>
+                        <input class="form-control" name="ga4_transport_url" placeholder="https://gtm.yourdomain.com" value="<?= e($s['ga4_transport_url'] ?? '') ?>">
+                        <small class="text-muted">Use your server-side GTM domain for first-party analytics delivery.</small>
+                    </div>
                 </div>
-                <div class="row g-3">
+                <div class="row g-3 mb-3">
                     <div class="col-md-4">
                         <label class="form-label">GTM Container ID</label>
                         <input class="form-control" name="gtm_container_id" placeholder="GTM-XXXXXXX" value="<?= e($s['gtm_container_id'] ?? '') ?>">
@@ -37,6 +44,44 @@
                         <label class="form-label">Server-side GTM URL</label>
                         <input class="form-control" name="gtm_server_url" placeholder="https://gtm.yourdomain.com" value="<?= e($s['gtm_server_url'] ?? '') ?>">
                     </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Header Code (Custom tags/pixels)</label>
+                    <textarea class="form-control" name="seo_header_code" rows="4" placeholder="<script>...</script>"><?= e($s['seo_header_code'] ?? '') ?></textarea>
+                </div>
+                <div class="mb-0">
+                    <label class="form-label">Footer Code</label>
+                    <textarea class="form-control" name="seo_footer_code" rows="4" placeholder="<script>...</script>"><?= e($s['seo_footer_code'] ?? '') ?></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <h2 class="h5">Sentry Monitoring</h2>
+                <div class="mb-3">
+                    <label class="form-label">Sentry DSN</label>
+                    <input class="form-control" name="sentry_dsn" placeholder="https://public@o0.ingest.sentry.io/0" value="<?= e($s['sentry_dsn'] ?? '') ?>">
+                </div>
+                <div class="row g-3 mb-2">
+                    <div class="col-md-4">
+                        <label class="form-label">Sentry Environment</label>
+                        <input class="form-control" name="sentry_environment" value="<?= e($s['sentry_environment'] ?? config('env', 'production')) ?>">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Sentry Release</label>
+                        <input class="form-control" name="sentry_release" placeholder="2026.02.12" value="<?= e($s['sentry_release'] ?? '') ?>">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Trace Sample Rate (0-1)</label>
+                        <input class="form-control" name="sentry_traces_sample_rate" value="<?= e($s['sentry_traces_sample_rate'] ?? '0.20') ?>">
+                    </div>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="perf_rum_web_vitals" id="perf_rum_web_vitals" <?= ($s['perf_rum_web_vitals'] ?? '1') === '1' ? 'checked' : '' ?>>
+                    <label class="form-check-label" for="perf_rum_web_vitals">Enable Real User Monitoring (Web Vitals beacon)</label>
                 </div>
             </div>
         </div>
@@ -67,6 +112,42 @@
                     <div class="col-md-4">
                         <label class="form-label">Region / Place</label>
                         <input class="form-control" name="seo_geo_region" placeholder="IN-TN, Chennai" value="<?= e($s['seo_geo_region'] ?? '') ?>">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <h2 class="h5">Production Operations</h2>
+                <div class="row g-3">
+                    <div class="col-md-6 form-check">
+                        <input class="form-check-input" type="checkbox" name="ops_cdn_enabled" id="ops_cdn_enabled" <?= ($s['ops_cdn_enabled'] ?? '0') === '1' ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="ops_cdn_enabled">CDN enabled (Cloudflare/Fastly/etc.)</label>
+                    </div>
+                    <div class="col-md-6 form-check">
+                        <input class="form-check-input" type="checkbox" name="ops_opcache_enabled" id="ops_opcache_enabled" <?= ($s['ops_opcache_enabled'] ?? '1') === '1' ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="ops_opcache_enabled">PHP OPcache enabled</label>
+                    </div>
+                    <div class="col-md-6 form-check">
+                        <input class="form-check-input" type="checkbox" name="ops_brotli_enabled" id="ops_brotli_enabled" <?= ($s['ops_brotli_enabled'] ?? '1') === '1' ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="ops_brotli_enabled">Brotli/Gzip compression enabled</label>
+                    </div>
+                    <div class="col-md-6 form-check">
+                        <input class="form-check-input" type="checkbox" name="seo_robots_noindex_nonprod" id="seo_robots_noindex_nonprod" <?= ($s['seo_robots_noindex_nonprod'] ?? '1') === '1' ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="seo_robots_noindex_nonprod">Noindex robots on non-production environments</label>
+                    </div>
+                </div>
+                <div class="row g-3 mt-2">
+                    <div class="col-md-7">
+                        <label class="form-label">CDN Base URL</label>
+                        <input class="form-control" name="ops_cdn_base_url" placeholder="https://cdn.example.com" value="<?= e($s['ops_cdn_base_url'] ?? '') ?>">
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label">Ops Alert Email</label>
+                        <input class="form-control" name="ops_monitoring_alert_email" placeholder="ops@example.com" value="<?= e($s['ops_monitoring_alert_email'] ?? '') ?>">
                     </div>
                 </div>
             </div>

@@ -51,6 +51,9 @@ set_exception_handler(static function (Throwable $e): void {
     if (class_exists(\App\Core\Logger::class)) {
         \App\Core\Logger::error($e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine());
     }
+    if (class_exists(\App\Services\SentryService::class)) {
+        \App\Services\SentryService::captureException($e);
+    }
 
     http_response_code(500);
     if (config('debug')) {
@@ -68,6 +71,9 @@ set_error_handler(static function (int $severity, string $message, string $file,
 
     if (class_exists(\App\Core\Logger::class)) {
         \App\Core\Logger::error($message . ' at ' . $file . ':' . $line);
+    }
+    if (class_exists(\App\Services\SentryService::class)) {
+        \App\Services\SentryService::captureError($message, $file, $line, $severity);
     }
 
     return true;

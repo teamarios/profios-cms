@@ -1,162 +1,153 @@
 # Profios CMS (PHP + MySQL)
 
-SEO-first custom CMS with visual page builder, advanced security, GitHub update controls, Core Web Vitals optimization controls, and auto-install packaging.
+SEO-first custom CMS with visual builder, production hardening, and auto-install packaging.
 
-## Implemented Features
+## Core Capabilities
 
-- Setup wizard (`/setup`) writes `.env`, creates DB schema, admin account, and default content.
-- Setup page now shows live server-stack install progress (`/setup/progress`) from installer scripts.
-- Admin SEO panel (`/admin/settings`):
-  - Header/footer script injection
-  - GTM + server-side GTM endpoint
-  - Global schema JSON-LD
-  - Internal links JSON
-  - Geotag fields (lat/lng/region)
-- SEO audit scoring per page (score + issues shown in page list/editor).
-- SEO one-click fix actions in page editor:
-  - Auto-fix meta title/description/canonical
-  - Auto-generate schema JSON-LD
-  - Auto-fill missing image alt text
-- 2FA with Google Authenticator:
-  - Enabled during setup
-  - OTP URI + secret provisioning
-  - Backup codes (generated, regenerated, consumed once)
-  - Account security page (`/admin/security`)
-  - Role-based enforcement policy via `security_force_2fa_roles`
-- GitHub update controls (`/admin/updates`):
-  - Save repo URL/branch/git user config
-  - Pull latest changes from GitHub
-  - Push current CMS updates to GitHub
-- Performance Center (`/admin/performance`):
-  - Core settings for CSS/JS/image/font/cache/third-party optimization
-  - Audit matrix covering CWV + major PageSpeed opportunities
+- Setup wizard (`/setup`) writes `.env`, creates schema, creates admin, and seeds defaults.
+- SEO controls: meta, schema JSON-LD, internal links, geotagging, sitemap/robots.
+- Security controls: CSP, HSTS, force HTTPS option, spam controls, role-based 2FA.
+- Performance controls: CWV and PageSpeed-aligned toggles in `/admin/performance`.
+- GitHub updates: pull/push from `/admin/updates`.
 
-## Performance Metrics Managed
+## Integrated Services
 
-The Performance Center provides settings and recommendation tracking for:
+Configured in `/admin/settings`:
 
-- LCP, INP, CLS, FCP, TTFB
-- Render blocking requests
-- Font display
-- Efficient cache lifetimes
-- Layout shift culprits
-- Forced reflow
-- LCP breakdown / request discovery
-- Network dependency tree
-- Improve image delivery
-- Duplicated JavaScript
-- Legacy JavaScript
-- Third-party code impact
-- Reduce JavaScript / main-thread work
-- Reduce unused CSS / JS
-- Missing image width/height
-- Minify CSS
-- Enormous network payloads
-- Long main-thread tasks
-- User timing marks/measures
-- Non-composited animations
+- Google Search Console verification token.
+- GA4 Measurement ID.
+- Server-side GTM URL + GA4 transport URL.
+- Sentry DSN/environment/release/sample rate.
+- Header/footer code injection for SEO team workflows.
+
+## New Ops Status Page
+
+`/admin/ops` provides live test buttons for:
+
+- Search Console token
+- GA4 setup
+- SGTM endpoint reachability
+- Sentry DSN validity
+- CDN/WAF readiness
+- SSL + HSTS + HTTPS readiness
+- Cert auto-renew template readiness
+- OPcache state
+- PHP-FPM pool tuning template
+- Compression readiness
+- Image pipeline readiness
+- Backup automation readiness
+- Monitoring/alerts readiness
+- Log retention/aggregation template readiness
+- MySQL health
+- Redis health
+
+## Production Templates and Scripts Added
+
+### PHP tuning
+- `deploy/php/opcache-profios.ini`
+- `deploy/php/php-fpm-profios.conf`
+
+### Web compression
+- `deploy/nginx/compression.conf`
+- gzip defaults in nginx templates
+- Apache `mod_deflate` in vhost template
+
+### Backups and restore test
+- `bin/backup.sh`
+- `bin/restore-smoke-test.sh`
+- systemd templates:
+  - `deploy/systemd/profios-backup.service`
+  - `deploy/systemd/profios-backup.timer`
+
+### Monitoring/health
+- Health endpoints:
+  - `GET /healthz`
+  - `GET /readyz`
+- RUM endpoint:
+  - `POST /rum/vitals`
+- Monitoring script:
+  - `bin/monitor-check.sh`
+- systemd templates:
+  - `deploy/systemd/profios-monitor.service`
+  - `deploy/systemd/profios-monitor.timer`
+- Healthcheck service now probes `/healthz`.
+
+### SSL renew templates
+- `deploy/systemd/cert-renew.service`
+- `deploy/systemd/cert-renew.timer`
+
+### Image optimization pipeline
+- `bin/image-pipeline.sh`
+- Source: `storage/uploads/originals`
+- Output: `storage/uploads/variants` (responsive JPG/WebP/AVIF when supported)
+
+### Log retention and aggregation starter
+- `deploy/logging/logrotate-profios.conf`
+- `deploy/monitoring/prometheus-rules.yml`
+
+## Installer Enhancements
+
+Native installer (`installer/install.sh`) now applies production templates automatically:
+
+- OPcache ini deployment
+- PHP-FPM pool config deployment
+- backup/monitor/cert-renew systemd timers
+- logrotate policy deployment
+- auto-randomized internal credentials and secrets:
+  - DB name/user/password
+  - Redis password
+  - session name
+  - app key
+
+## Recommended Request Path
+
+`CDN/WAF -> Nginx -> Varnish -> Apache/PHP-FPM`
 
 ## Quick Start
 
-1. Start app:
 ```bash
 php -S localhost:8000 -t public
 ```
-2. Open setup:
-- `http://localhost:8000/setup`
-3. Fill all fields and install.
 
-## Upgrade Existing Installations
+Then open `http://localhost:8000/setup`.
 
-Run idempotent migrator:
+## Post-Install Must-Do (UI)
 
-```bash
-php bin/migrate.php
-```
+1. Go to `/admin/settings`.
+2. Configure Search Console + GA4 + SGTM + Sentry.
+3. Enable/check production toggles (CDN, OPcache, Brotli/gzip, non-prod noindex).
+4. Go to `/admin/performance` and apply all recommended toggles.
+5. Go to `/admin/ops` and run all live tests.
 
-## PocketBase-style Installer
+## Auto Installer
 
-### Single command interactive install
+### Interactive
 ```bash
 sudo ./installer/profios install
 ```
 
-### Health check
+### Direct
 ```bash
-./installer/profios doctor --mode docker
+sudo bash installer/install.sh --mode native --webserver hybrid --domain example.com --email you@example.com
 ```
-
-### Rollback to last backup
-```bash
-sudo ./installer/profios rollback
-```
-
-### Build distributable package
-```bash
-./installer/profios package
-```
-
-## Full Stack Auto-Install Scripts
-
-### Stack installer wrapper
-```bash
-./installer/install-stack.sh --mode native --webserver nginx --domain example.com --email you@example.com
-```
-
-### Direct installer (all-in-one)
-```bash
-sudo bash installer/install.sh --mode native --webserver apache --domain example.com --email you@example.com
-```
-
-Installs and auto-configures:
-- Nginx or Apache
-- PHP + PHP-FPM (FastCGI)
-- MySQL
-- Redis
-- Varnish
-- Adminer (`/adminer.php` for native, `:8080` for docker)
-- Certbot AutoSSL
 
 ### Docker mode
 ```bash
 sudo bash installer/install.sh --mode docker
 ```
 
-### Remote package install
+## Utility Commands
+
 ```bash
-bash installer/remote-install.sh https://your-cdn/profios-cms.tar.gz --mode docker
+# backup now
+bin/backup.sh
+
+# restore smoke test from latest backup
+bin/restore-smoke-test.sh
+
+# generate responsive image variants
+bin/image-pipeline.sh
+
+# run health checks used by monitoring
+bin/monitor-check.sh
 ```
-
-Installer notes:
-- Creates backup snapshot before deployment.
-- Writes progress to `storage/install-progress.json`.
-- Setup page polls progress in real time.
-- Auto-attempts rollback on failed install.
-- Runs migration automatically after install.
-
-## Deployment Templates
-
-- Nginx: `deploy/nginx/profios-cms.conf`
-- Nginx micro-cache: `deploy/nginx/fastcgi-microcache.conf`
-- Apache: `deploy/apache/profios-cms.conf`
-- Varnish: `deploy/varnish/default.vcl`
-- Docker stack: `deploy/compose/docker-compose.yml`
-- systemd restart policy: `deploy/systemd/install-overrides.sh`
-
-## AutoSSL (Let’s Encrypt)
-
-- Nginx:
-```bash
-bash deploy/ssl/setup-letsencrypt-nginx.sh yourdomain.com you@example.com
-```
-- Apache:
-```bash
-bash deploy/ssl/setup-letsencrypt-apache.sh yourdomain.com you@example.com
-```
-
-## Recommended Production Stack
-
-- CDN/WAF -> Varnish -> Nginx -> PHP-FPM
-- Redis cache
-- MySQL primary + backup strategy
-- SSL auto-renewal via certbot timer

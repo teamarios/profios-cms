@@ -6,6 +6,7 @@ return [
     'name' => env('APP_NAME', 'Profios CMS'),
     'url' => env('APP_URL', 'http://localhost:8000'),
     'env' => env('APP_ENV', 'production'),
+    'release' => env('APP_RELEASE', ''),
     'debug' => env('APP_DEBUG', 'false') === 'true',
     'installed' => env('APP_INSTALLED', 'false') === 'true',
     'app_key' => env('APP_KEY', 'change-me'),

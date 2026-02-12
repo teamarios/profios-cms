@@ -1,0 +1,17 @@
+groups:
+  - name: profios-cms
+    rules:
+      - alert: ProfiosHigh5xxRate
+        expr: sum(rate(nginx_http_requests_total{status=~"5.."}[5m])) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High 5xx error rate on Profios CMS"
+      - alert: ProfiosHighCpu
+        expr: avg(rate(process_cpu_seconds_total[5m])) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage"

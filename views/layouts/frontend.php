@@ -10,6 +10,9 @@
     <?php if (!empty($meta['canonical'])): ?>
         <link rel="canonical" href="<?= e($meta['canonical']) ?>">
     <?php endif; ?>
+    <?php if (setting('google_site_verification', '') !== ''): ?>
+        <meta name="google-site-verification" content="<?= e(setting('google_site_verification', '')) ?>">
+    <?php endif; ?>
     <?php if (setting('seo_geo_latitude', '') !== '' && setting('seo_geo_longitude', '') !== ''): ?>
         <meta name="geo.position" content="<?= e(setting('seo_geo_latitude', '')) ?>;<?= e(setting('seo_geo_longitude', '')) ?>">
         <meta name="ICBM" content="<?= e(setting('seo_geo_latitude', '')) ?>, <?= e(setting('seo_geo_longitude', '')) ?>">
@@ -62,6 +65,12 @@
     <?php endif; ?>
     <?php $gtmContainer = setting('gtm_container_id', ''); ?>
     <?php $gtmServer = rtrim((string) setting('gtm_server_url', ''), '/'); ?>
+    <?php $ga4MeasurementId = setting('ga4_measurement_id', ''); ?>
+    <?php $ga4TransportUrl = setting('ga4_transport_url', ''); ?>
+    <?php $sentryDsn = setting('sentry_dsn', ''); ?>
+    <?php $sentryEnvironment = setting('sentry_environment', config('env', 'production')); ?>
+    <?php $sentryRelease = setting('sentry_release', ''); ?>
+    <?php $sentryTracesSampleRate = setting('sentry_traces_sample_rate', '0.20'); ?>
     <?php if ($gtmContainer !== '' && setting('perf_limit_third_party_scripts', '1') === '1'): ?>
         <script>
             (function(loadFn){
@@ -82,6 +91,49 @@
     <?php $headerCode = setting('seo_header_code', ''); ?>
     <?php if ($headerCode !== ''): ?>
         <?= $headerCode ?>
+    <?php endif; ?>
+    <?php if ($ga4MeasurementId !== '' && setting('perf_limit_third_party_scripts', '1') === '1'): ?>
+        <script>
+            (function(loadFn){
+                if (<?= setting('perf_defer_third_party_js', '1') === '1' ? 'true' : 'false' ?>) {
+                    window.addEventListener('load', function(){ setTimeout(loadFn, 400); });
+                } else {
+                    loadFn();
+                }
+            })(function(){
+                var s = document.createElement('script');
+                s.async = true;
+                s.src = 'https://www.googletagmanager.com/gtag/js?id=<?= e($ga4MeasurementId) ?>';
+                document.head.appendChild(s);
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                window.gtag = gtag;
+                gtag('js', new Date());
+                gtag('config', '<?= e($ga4MeasurementId) ?>', {
+                    send_page_view: true<?= $ga4TransportUrl !== '' ? ",\n                    transport_url: '" . e($ga4TransportUrl) . "'" : '' . "\n" ?>
+                });
+            });
+        </script>
+    <?php endif; ?>
+    <?php if ($sentryDsn !== '' && setting('perf_limit_third_party_scripts', '1') === '1'): ?>
+        <script src="https://browser.sentry-cdn.com/8.33.0/bundle.tracing.replay.min.js" crossorigin="anonymous" defer></script>
+        <script>
+            window.addEventListener('load', function () {
+                setTimeout(function () {
+                    if (!window.Sentry) {
+                        return;
+                    }
+                    window.Sentry.init({
+                        dsn: '<?= e($sentryDsn) ?>',
+                        environment: '<?= e($sentryEnvironment) ?>',
+                        release: '<?= e($sentryRelease) ?>',
+                        tracesSampleRate: <?= (float) $sentryTracesSampleRate ?>,
+                        replaysSessionSampleRate: 0.0,
+                        replaysOnErrorSampleRate: 1.0
+                    });
+                }, 350);
+            });
+        </script>
     <?php endif; ?>
 </head>
 <body>
@@ -108,6 +160,39 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             performance.mark('cms_window_load');
             performance.measure('cms_load_time', 'cms_dom_ready', 'cms_window_load');
         });
+    </script>
+<?php endif; ?>
+<?php if (setting('perf_rum_web_vitals', '1') === '1'): ?>
+    <script type="module">
+        import {onCLS, onINP, onLCP, onFCP, onTTFB} from 'https://unpkg.com/web-vitals@4/dist/web-vitals.attribution.js?module';
+
+        const sendMetric = (metric) => {
+            const payload = JSON.stringify({
+                name: metric.name,
+                value: metric.value,
+                rating: metric.rating,
+                delta: metric.delta,
+                id: metric.id,
+                page: window.location.pathname,
+                ts: Date.now()
+            });
+            navigator.sendBeacon('/rum/vitals', payload);
+
+            if (window.gtag && '<?= e($ga4MeasurementId) ?>' !== '') {
+                window.gtag('event', metric.name, {
+                    event_category: 'Web Vitals',
+                    event_label: metric.id,
+                    value: Math.round(metric.value),
+                    non_interaction: true
+                });
+            }
+        };
+
+        onCLS(sendMetric);
+        onINP(sendMetric);
+        onLCP(sendMetric);
+        onFCP(sendMetric);
+        onTTFB(sendMetric);
     </script>
 <?php endif; ?>
 <?php $footerCode = setting('seo_footer_code', ''); ?>

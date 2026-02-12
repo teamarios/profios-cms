@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Controllers\AdminAuthController;
 use App\Controllers\AdminDashboardController;
+use App\Controllers\AdminOpsController;
 use App\Controllers\AdminPageController;
 use App\Controllers\AdminSecurityController;
 use App\Controllers\AdminSettingsController;
@@ -30,6 +31,8 @@ if (setting('security_force_https', '0') === '1' && !$isHttps) {
 header('X-Frame-Options: SAMEORIGIN');
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: strict-origin-when-cross-origin');
+header('Permissions-Policy: accelerometer=(), autoplay=(), camera=(), geolocation=(), microphone=(), payment=(), usb=()');
+header('Cross-Origin-Opener-Policy: same-origin');
 if (setting('security_hsts_enabled', '0') === '1') {
     header('Strict-Transport-Security: max-age=63072000; includeSubDomains; preload');
 }
@@ -49,8 +52,21 @@ if (str_starts_with($requestPath, '/admin') || str_starts_with($requestPath, '/s
 }
 
 if (!config('installed')) {
-    $setupAllowed = str_starts_with($requestPath, '/setup');
-    if (!$setupAllowed) {
+    $healthAllowed = in_array($requestPath, ['/healthz', '/readyz'], true);
+    if ($healthAllowed) {
+        header('Content-Type: application/json; charset=utf-8');
+        http_response_code(503);
+        echo json_encode([
+            'ok' => false,
+            'checks' => [
+                'app' => ['ok' => false, 'message' => 'CMS is not installed.'],
+            ],
+            'timestamp' => gmdate('c'),
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    if (!str_starts_with($requestPath, '/setup')) {
         redirect('/setup');
     }
 } elseif (str_starts_with($requestPath, '/setup')) {
@@ -63,6 +79,9 @@ $router->post('/setup/install', [SetupController::class, 'install']);
 
 $router->get('/', [FrontendController::class, 'home']);
 $router->get('/page/{slug}', [FrontendController::class, 'show']);
+$router->get('/healthz', [FrontendController::class, 'health']);
+$router->get('/readyz', [FrontendController::class, 'readiness']);
+$router->post('/rum/vitals', [FrontendController::class, 'captureVitals']);
 $router->get('/sitemap.xml', [SeoController::class, 'sitemap']);
 $router->get('/robots.txt', [SeoController::class, 'robots']);
 
@@ -80,6 +99,8 @@ $router->post('/admin/pages/{id}/delete', [AdminPageController::class, 'delete']
 $router->get('/admin/settings', [AdminSettingsController::class, 'edit']);
 $router->post('/admin/settings/update', [AdminSettingsController::class, 'update']);
 $router->get('/admin/security', [AdminSecurityController::class, 'index']);
+$router->get('/admin/ops', [AdminOpsController::class, 'index']);
+$router->post('/admin/ops/test/{check}', [AdminOpsController::class, 'test']);
 $router->post('/admin/security/rotate-2fa', [AdminSecurityController::class, 'rotateTwoFactor']);
 $router->post('/admin/security/disable-2fa', [AdminSecurityController::class, 'disableTwoFactor']);
 $router->post('/admin/security/backup-codes', [AdminSecurityController::class, 'regenerateBackupCodes']);

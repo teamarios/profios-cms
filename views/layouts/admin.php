@@ -25,6 +25,7 @@
             <a href="/admin/settings">SEO & Security</a>
             <a href="/admin/security">My Security</a>
             <a href="/admin/performance">Performance</a>
+            <a href="/admin/ops">Ops Status</a>
             <a href="/admin/updates">Updates</a>
             <a href="/admin/logout">Logout</a>
         </aside>

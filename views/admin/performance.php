@@ -32,6 +32,10 @@
                 'perf_avoid_non_composited_animations' => 'Avoid non-composited animations',
                 'perf_limit_third_party_scripts' => 'Limit third-party scripts',
                 'perf_user_timing_marks' => 'Enable User Timing marks/measures',
+                'perf_rum_web_vitals' => 'Enable Web Vitals RUM beacon',
+                'ops_cdn_enabled' => 'CDN/edge cache active',
+                'ops_opcache_enabled' => 'PHP OPcache enabled',
+                'ops_brotli_enabled' => 'Brotli/Gzip compression enabled',
             ];
             ?>
             <?php foreach ($labels as $key => $label): ?>

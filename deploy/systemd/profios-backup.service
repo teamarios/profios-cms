@@ -1,0 +1,8 @@
+[Unit]
+Description=Profios CMS backup job
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/var/www/profios-cms
+ExecStart=/var/www/profios-cms/bin/backup.sh

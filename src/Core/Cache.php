@@ -139,6 +139,42 @@ final class Cache
         }
     }
 
+    public static function redisHealth(): array
+    {
+        if (!self::isRedisEnabled()) {
+            return [
+                'configured' => false,
+                'connected' => false,
+                'message' => 'Redis cache driver is not enabled.',
+            ];
+        }
+
+        $redis = self::redis();
+        if (!($redis instanceof \Redis)) {
+            return [
+                'configured' => true,
+                'connected' => false,
+                'message' => 'Unable to connect to Redis.',
+            ];
+        }
+
+        try {
+            $pong = $redis->ping();
+            $ok = is_string($pong) && stripos($pong, 'PONG') !== false;
+            return [
+                'configured' => true,
+                'connected' => $ok,
+                'message' => $ok ? 'Redis reachable.' : 'Redis ping failed.',
+            ];
+        } catch (\Throwable) {
+            return [
+                'configured' => true,
+                'connected' => false,
+                'message' => 'Redis ping failed.',
+            ];
+        }
+    }
+
     private static function path(string $key): string
     {
         $cachePath = (string) config('cache_path');

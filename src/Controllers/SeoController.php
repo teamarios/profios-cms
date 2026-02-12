@@ -40,8 +40,17 @@ final class SeoController
     {
         header('Content-Type: text/plain; charset=utf-8');
         $base = rtrim((string) config('url'), '/');
+        $env = strtolower((string) config('env', 'production'));
+        $forceNoIndex = setting('seo_robots_noindex_nonprod', '1') === '1'
+            && $env !== 'production';
 
         echo "User-agent: *\n";
+        if ($forceNoIndex) {
+            echo "Disallow: /\n\n";
+            echo '# Non-production environment (' . $env . ')' . "\n";
+            return;
+        }
+
         echo "Allow: /\n";
         echo "Disallow: /admin\n\n";
         echo 'Sitemap: ' . $base . "/sitemap.xml\n";

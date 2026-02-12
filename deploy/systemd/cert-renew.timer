@@ -1,0 +1,11 @@
+[Unit]
+Description=Run cert renew twice daily
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=12h
+Unit=cert-renew.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target

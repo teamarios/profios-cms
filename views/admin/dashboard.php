@@ -19,4 +19,17 @@
             </div>
         </div>
     </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <h2 class="h6 text-muted">Production Integrations</h2>
+                <?php foreach (($integrations ?? []) as $name => $enabled): ?>
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span><?= e((string) $name) ?></span>
+                        <span class="badge text-bg-<?= $enabled ? 'success' : 'secondary' ?>"><?= $enabled ? 'On' : 'Off' ?></span>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div>
 </div>

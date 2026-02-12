@@ -1,0 +1,8 @@
+[Unit]
+Description=Profios CMS monitoring checks
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/var/www/profios-cms
+ExecStart=/var/www/profios-cms/bin/monitor-check.sh

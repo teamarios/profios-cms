@@ -22,6 +22,10 @@ final class PerformanceAuditService
             'perf_avoid_non_composited_animations' => '1',
             'perf_limit_third_party_scripts' => '1',
             'perf_user_timing_marks' => '1',
+            'perf_rum_web_vitals' => '1',
+            'ops_cdn_enabled' => '0',
+            'ops_opcache_enabled' => '1',
+            'ops_brotli_enabled' => '1',
         ];
     }
 
@@ -55,6 +59,13 @@ final class PerformanceAuditService
             'Avoid long main-thread tasks' => self::ok($settings, ['perf_defer_third_party_js']),
             'User Timing marks and measures' => self::ok($settings, ['perf_user_timing_marks']),
             'Avoid non-composited animations' => self::ok($settings, ['perf_avoid_non_composited_animations']),
+            'Real user monitoring (Web Vitals)' => self::ok($settings, ['perf_rum_web_vitals']),
+            'CDN and edge delivery' => self::ok($settings, ['ops_cdn_enabled']),
+            'PHP OPcache readiness' => self::ok($settings, ['ops_opcache_enabled']),
+            'Compression (Brotli/Gzip)' => self::ok($settings, ['ops_brotli_enabled']),
+            'GA4 integration' => self::filled($settings, ['ga4_measurement_id']),
+            'Sentry monitoring integration' => self::filled($settings, ['sentry_dsn']),
+            'Search Console verification' => self::filled($settings, ['google_site_verification']),
         ];
 
         $total = count($checks);
@@ -72,6 +83,17 @@ final class PerformanceAuditService
         foreach ($keys as $key) {
             if (($settings[$key] ?? '0') !== '1') {
                 return ['status' => 'needs_attention', 'hint' => 'Enable ' . $key . '.'];
+            }
+        }
+
+        return ['status' => 'ok', 'hint' => 'Configured.'];
+    }
+
+    private static function filled(array $settings, array $keys): array
+    {
+        foreach ($keys as $key) {
+            if (trim((string) ($settings[$key] ?? '')) === '') {
+                return ['status' => 'needs_attention', 'hint' => 'Set ' . $key . '.'];
             }
         }
 
