@@ -1,0 +1,5 @@
+.env
+storage/cache/*.cache
+storage/logs/*.log
+dist/
+.DS_Store

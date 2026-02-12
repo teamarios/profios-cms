@@ -1,0 +1,199 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+INSTALLER="$ROOT_DIR/installer/install.sh"
+STATE_FILE="/var/tmp/profios-cms-last-backup.txt"
+ORIGINAL_ARGS=("$@")
+
+usage() {
+  cat <<USAGE
+Profios CMS Installer CLI
+
+Usage:
+  profios install [--mode docker|native] [--webserver nginx|apache] [--domain example.com] [--email you@example.com] [--app-dir /opt/profios-cms]
+  profios doctor [--mode docker|native] [--app-dir /opt/profios-cms]
+  profios rollback [--app-dir /opt/profios-cms] [--backup /var/backups/profios-cms/<file>.tar.gz]
+  profios package [version]
+USAGE
+}
+
+require_root() {
+  if [[ "${EUID}" -ne 0 ]]; then
+    echo "Re-running with sudo..."
+    exec sudo "$0" "${ORIGINAL_ARGS[@]}"
+  fi
+}
+
+prompt_if_empty() {
+  local var_name="$1"
+  local prompt_text="$2"
+  local default_value="$3"
+  local current="${!var_name:-}"
+
+  if [[ -z "$current" ]]; then
+    read -r -p "$prompt_text [$default_value]: " input
+    if [[ -z "$input" ]]; then
+      printf -v "$var_name" '%s' "$default_value"
+    else
+      printf -v "$var_name" '%s' "$input"
+    fi
+  fi
+}
+
+healthcheck_docker() {
+  local app_dir="$1"
+  local compose_dir="$app_dir/deploy/compose"
+  echo "Running docker health checks..."
+  docker compose -f "$compose_dir/docker-compose.yml" ps
+  curl -fsS http://127.0.0.1/ >/dev/null
+  echo "Docker stack healthy."
+}
+
+healthcheck_native() {
+  echo "Running native service health checks..."
+  local services=(nginx mysql redis-server varnish)
+  for svc in "${services[@]}"; do
+    if systemctl list-unit-files | grep -q "^${svc}\.service"; then
+      systemctl is-active --quiet "$svc"
+    fi
+  done
+  curl -fsS http://127.0.0.1/ >/dev/null
+  echo "Native stack healthy."
+}
+
+run_install() {
+  local mode="${MODE:-}"
+  local domain="${DOMAIN:-}"
+  local email="${EMAIL:-}"
+  local app_dir="${APP_DIR:-}"
+  local webserver="${WEBSERVER:-}"
+
+  prompt_if_empty mode "Install mode" "docker"
+  prompt_if_empty app_dir "App directory" "/opt/profios-cms"
+
+  if [[ "$mode" == "native" ]]; then
+    prompt_if_empty webserver "Web server (nginx/apache)" "nginx"
+    prompt_if_empty domain "Domain (optional for SSL)" ""
+    if [[ -n "$domain" ]]; then
+      prompt_if_empty email "Let's Encrypt email" "admin@example.com"
+    fi
+  fi
+
+  require_root
+
+  local install_args=(--mode "$mode" --app-dir "$app_dir")
+  if [[ -n "$webserver" ]]; then
+    install_args+=(--webserver "$webserver")
+  fi
+  if [[ -n "$domain" ]]; then
+    install_args+=(--domain "$domain")
+  fi
+  if [[ -n "$email" ]]; then
+    install_args+=(--email "$email")
+  fi
+
+  set +e
+  bash "$INSTALLER" "${install_args[@]}"
+  local code=$?
+  set -e
+
+  if [[ $code -ne 0 ]]; then
+    echo "Install failed. Attempting rollback..."
+    run_rollback "$app_dir" ""
+    exit $code
+  fi
+
+  if [[ "$mode" == "docker" ]]; then
+    healthcheck_docker "$app_dir"
+  else
+    healthcheck_native
+  fi
+
+  echo "Install complete. Open /setup to finalize."
+}
+
+run_doctor() {
+  local mode="${MODE:-docker}"
+  local app_dir="${APP_DIR:-/opt/profios-cms}"
+
+  if [[ "$mode" == "docker" ]]; then
+    healthcheck_docker "$app_dir"
+  else
+    healthcheck_native
+  fi
+}
+
+run_rollback() {
+  local app_dir="$1"
+  local backup_path="$2"
+
+  require_root
+
+  if [[ -z "$backup_path" ]]; then
+    if [[ -f "$STATE_FILE" ]]; then
+      backup_path="$(cat "$STATE_FILE")"
+    fi
+  fi
+
+  if [[ -z "$backup_path" || ! -f "$backup_path" ]]; then
+    echo "No valid backup file found for rollback."
+    exit 1
+  fi
+
+  echo "Rolling back from: $backup_path"
+  mkdir -p "$(dirname "$app_dir")"
+  rm -rf "$app_dir"
+  tar -xzf "$backup_path" -C "$(dirname "$app_dir")"
+
+  if [[ -f "$app_dir/deploy/compose/docker-compose.yml" ]]; then
+    docker compose -f "$app_dir/deploy/compose/docker-compose.yml" up -d || true
+  fi
+
+  systemctl restart nginx 2>/dev/null || true
+  systemctl restart mysql 2>/dev/null || true
+  systemctl restart redis-server 2>/dev/null || true
+  systemctl restart varnish 2>/dev/null || true
+
+  echo "Rollback completed."
+}
+
+run_package() {
+  local version="${1:-}"
+  if [[ -n "$version" ]]; then
+    bash "$ROOT_DIR/installer/create-package.sh" "$version"
+  else
+    bash "$ROOT_DIR/installer/create-package.sh"
+  fi
+}
+
+COMMAND="${1:-}"
+shift || true
+
+MODE=""
+WEBSERVER=""
+DOMAIN=""
+EMAIL=""
+APP_DIR=""
+BACKUP=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --mode) MODE="$2"; shift 2 ;;
+    --webserver) WEBSERVER="$2"; shift 2 ;;
+    --domain) DOMAIN="$2"; shift 2 ;;
+    --email) EMAIL="$2"; shift 2 ;;
+    --app-dir) APP_DIR="$2"; shift 2 ;;
+    --backup) BACKUP="$2"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) break ;;
+  esac
+done
+
+case "$COMMAND" in
+  install) run_install ;;
+  doctor) run_doctor ;;
+  rollback) run_rollback "${APP_DIR:-/opt/profios-cms}" "$BACKUP" ;;
+  package) run_package "${1:-}" ;;
+  *) usage; exit 1 ;;
+esac

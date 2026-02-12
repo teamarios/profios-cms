@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Profios CMS health check every minute
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=1min
+Unit=app-healthcheck.service
+
+[Install]
+WantedBy=timers.target

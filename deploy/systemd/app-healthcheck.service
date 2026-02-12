@@ -1,0 +1,8 @@
+[Unit]
+Description=Profios CMS HTTP health check
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/curl -fsS http://127.0.0.1/ >/dev/null
