@@ -52,7 +52,7 @@ healthcheck_docker() {
 
 healthcheck_native() {
   echo "Running native service health checks..."
-  local services=(nginx mysql redis-server varnish)
+  local services=(nginx httpd apache2 mariadb mysql valkey redis redis-server varnish php-fpm)
   for svc in "${services[@]}"; do
     if systemctl list-unit-files | grep -q "^${svc}\.service"; then
       systemctl is-active --quiet "$svc"
@@ -151,7 +151,12 @@ run_rollback() {
   fi
 
   systemctl restart nginx 2>/dev/null || true
+  systemctl restart httpd 2>/dev/null || true
+  systemctl restart apache2 2>/dev/null || true
   systemctl restart mysql 2>/dev/null || true
+  systemctl restart mariadb 2>/dev/null || true
+  systemctl restart valkey 2>/dev/null || true
+  systemctl restart redis 2>/dev/null || true
   systemctl restart redis-server 2>/dev/null || true
   systemctl restart varnish 2>/dev/null || true
 

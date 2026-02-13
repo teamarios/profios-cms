@@ -2,7 +2,7 @@
 set -euo pipefail
 
 OVERRIDE_SOURCE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/override-template.conf"
-SERVICES=(nginx php-fpm apache2 httpd mysql mariadb redis varnish)
+SERVICES=(nginx php-fpm apache2 httpd mysql mariadb redis redis-server valkey varnish)
 
 for svc in "${SERVICES[@]}"; do
   target_dir="/etc/systemd/system/${svc}.service.d"

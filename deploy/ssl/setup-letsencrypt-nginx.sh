@@ -9,11 +9,24 @@ fi
 DOMAIN="$1"
 EMAIL="$2"
 
-sudo apt-get update
-sudo apt-get install -y certbot python3-certbot-nginx
+if command -v apt-get >/dev/null 2>&1; then
+  sudo apt-get update
+  sudo apt-get install -y certbot python3-certbot-nginx
+elif command -v dnf >/dev/null 2>&1; then
+  sudo dnf -y install certbot python3-certbot-nginx
+else
+  echo "Unsupported package manager. Install certbot manually."
+  exit 1
+fi
+
 sudo certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos -m "$EMAIL" --redirect
-sudo systemctl enable certbot.timer
-sudo systemctl start certbot.timer
+if systemctl list-unit-files | grep -q '^certbot-renew.timer'; then
+  sudo systemctl enable certbot-renew.timer
+  sudo systemctl start certbot-renew.timer
+else
+  sudo systemctl enable certbot.timer
+  sudo systemctl start certbot.timer
+fi
 sudo certbot renew --dry-run
 
 echo "Let's Encrypt SSL configured for $DOMAIN"

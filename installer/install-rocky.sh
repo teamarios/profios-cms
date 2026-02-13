@@ -204,10 +204,32 @@ install_production_templates() {
   fi
   if [[ -f "$APP_DIR/deploy/logging/logrotate-profios.conf" ]]; then
     cp "$APP_DIR/deploy/logging/logrotate-profios.conf" /etc/logrotate.d/profios-cms
+    sed -i 's/www-data/apache/g; s/adm/apache/g' /etc/logrotate.d/profios-cms || true
   fi
 
   systemctl daemon-reload
   systemctl enable --now profios-backup.timer profios-monitor.timer cert-renew.timer || true
+}
+
+configure_firewall_and_selinux() {
+  write_progress 84 "running" "Configuring firewall and SELinux policies..." "security"
+
+  if command -v firewall-cmd >/dev/null 2>&1; then
+    systemctl enable --now firewalld || true
+    firewall-cmd --permanent --add-service=http || true
+    firewall-cmd --permanent --add-service=https || true
+    firewall-cmd --reload || true
+  fi
+
+  if command -v getenforce >/dev/null 2>&1 && [[ "$(getenforce)" != "Disabled" ]]; then
+    if command -v setsebool >/dev/null 2>&1; then
+      setsebool -P httpd_can_network_connect 1 || true
+    fi
+    if command -v semanage >/dev/null 2>&1; then
+      semanage port -a -t http_port_t -p tcp 8081 2>/dev/null || semanage port -m -t http_port_t -p tcp 8081 || true
+      semanage port -a -t http_port_t -p tcp 6081 2>/dev/null || semanage port -m -t http_port_t -p tcp 6081 || true
+    fi
+  fi
 }
 
 configure_stack_credentials() {
@@ -463,7 +485,10 @@ EOF
   write_progress 76 "running" "Enabling services..." "services"
   configure_native_redis_auth
   install_production_templates
+  php-fpm -t
   systemctl enable --now php-fpm "$REDIS_SERVICE_NAME" varnish crond
+  systemctl restart "$REDIS_SERVICE_NAME" || true
+  systemctl restart php-fpm || true
 
   if [[ "$WEBSERVER" == "apache" ]]; then
     systemctl enable --now httpd
@@ -481,6 +506,8 @@ EOF
     nginx -t
     systemctl restart nginx
   fi
+
+  configure_firewall_and_selinux
 
   write_progress 88 "running" "Configuring AutoSSL..." "ssl"
   if [[ -n "$DOMAIN" && -n "$EMAIL" ]]; then
