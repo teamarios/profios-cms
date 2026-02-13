@@ -136,6 +136,16 @@ sudo bash installer/install.sh --mode native --webserver hybrid --domain example
 sudo bash installer/install.sh --mode docker
 ```
 
+### Rocky Linux (native)
+```bash
+sudo bash installer/install-rocky.sh --mode native --webserver hybrid --domain example.com --email you@example.com
+```
+
+### Rocky Linux wrapper
+```bash
+./installer/install-stack-rocky.sh --mode native --webserver hybrid --domain example.com --email you@example.com
+```
+
 ## Utility Commands
 
 ```bash
