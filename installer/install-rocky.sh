@@ -11,6 +11,8 @@ DB_USER="profios_user"
 DB_PASS=""
 DB_ROOT_PASS=""
 REDIS_PASS=""
+REDIS_SERVICE_NAME="redis"
+REDIS_CONF_PATH="/etc/redis/redis.conf"
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKUP_DIR="/var/backups/profios-cms"
 LAST_BACKUP_FILE="/var/tmp/profios-cms-last-backup.txt"
@@ -122,7 +124,7 @@ EOF
 }
 
 configure_native_redis_auth() {
-  local conf="/etc/redis/redis.conf"
+  local conf="$REDIS_CONF_PATH"
   if [[ -f "$conf" ]]; then
     if grep -qE '^#?requirepass ' "$conf"; then
       sed -E -i "s!^#?requirepass .*!requirepass $REDIS_PASS!" "$conf"
@@ -130,6 +132,35 @@ configure_native_redis_auth() {
       echo "requirepass $REDIS_PASS" >> "$conf"
     fi
   fi
+}
+
+install_redis_stack_rocky() {
+  if dnf -y install redis; then
+    REDIS_SERVICE_NAME="redis"
+    REDIS_CONF_PATH="/etc/redis/redis.conf"
+    return
+  fi
+
+  if dnf -y install valkey; then
+    REDIS_SERVICE_NAME="valkey"
+    REDIS_CONF_PATH="/etc/valkey/valkey.conf"
+    return
+  fi
+
+  if dnf -y install redis7; then
+    REDIS_SERVICE_NAME="redis"
+    REDIS_CONF_PATH="/etc/redis/redis.conf"
+    return
+  fi
+
+  if dnf -y install redis6; then
+    REDIS_SERVICE_NAME="redis"
+    REDIS_CONF_PATH="/etc/redis/redis.conf"
+    return
+  fi
+
+  echo "Unable to install redis/valkey package on this Rocky host."
+  exit 1
 }
 
 install_production_templates() {
@@ -289,9 +320,19 @@ install_mode_native() {
   install_php_repos_rocky
 
   write_progress 12 "running" "Installing Rocky packages..." "packages"
-  dnf -y install \
-    nginx httpd varnish mariadb-server redis certbot \
+  dnf -y install --allowerasing \
+    nginx httpd varnish mariadb-server certbot \
     php php-fpm php-cli php-mysqlnd php-pecl-redis php-curl php-xml php-mbstring php-zip php-gd php-opcache \
+    curl rsync unzip tar cronie logrotate git || true
+
+  dnf -y install --allowerasing \
+    nginx httpd varnish mariadb-server certbot \
+    php php-fpm php-cli php-mysqlnd php-redis php-curl php-xml php-mbstring php-zip php-gd php-opcache \
+    curl rsync unzip tar cronie logrotate git || true
+
+  dnf -y install \
+    nginx httpd varnish mariadb-server certbot \
+    php php-fpm php-cli php-mysqlnd php-curl php-xml php-mbstring php-zip php-gd php-opcache \
     curl rsync unzip tar cronie logrotate git
 
   if [[ "$WEBSERVER" == "apache" ]]; then
@@ -299,6 +340,7 @@ install_mode_native() {
   else
     dnf -y install python3-certbot-nginx
   fi
+  install_redis_stack_rocky
 
   create_backup
   prepare_app_dir
@@ -411,7 +453,7 @@ EOF
   write_progress 76 "running" "Enabling services..." "services"
   configure_native_redis_auth
   install_production_templates
-  systemctl enable --now php-fpm redis varnish crond
+  systemctl enable --now php-fpm "$REDIS_SERVICE_NAME" varnish crond
 
   if [[ "$WEBSERVER" == "apache" ]]; then
     systemctl enable --now httpd
