@@ -94,7 +94,12 @@ on_error() {
 }
 
 generate_secret() {
-  tr -dc 'A-Za-z0-9' </dev/urandom | head -c "${1:-24}"
+  local len="${1:-24}"
+  if command -v openssl >/dev/null 2>&1; then
+    openssl rand -hex 64 | tr -d '\n' | cut -c1-"$len"
+  else
+    LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | dd bs=1 count="$len" status=none
+  fi
 }
 
 set_env_value() {
@@ -172,6 +177,11 @@ install_production_templates() {
 
   if [[ -f "$APP_DIR/deploy/php/php-fpm-profios.conf" ]]; then
     cp "$APP_DIR/deploy/php/php-fpm-profios.conf" /etc/php-fpm.d/www.conf || true
+    sed -i 's/^user = .*/user = apache/' /etc/php-fpm.d/www.conf || true
+    sed -i 's/^group = .*/group = apache/' /etc/php-fpm.d/www.conf || true
+    sed -i 's|^listen = .*|listen = /run/php-fpm/www.sock|' /etc/php-fpm.d/www.conf || true
+    sed -i 's/^listen.owner = .*/listen.owner = apache/' /etc/php-fpm.d/www.conf || true
+    sed -i 's/^listen.group = .*/listen.group = apache/' /etc/php-fpm.d/www.conf || true
   fi
 
   if [[ -f "$APP_DIR/deploy/systemd/profios-backup.service" ]]; then
