@@ -486,18 +486,19 @@ EOF
   configure_native_redis_auth
   install_production_templates
   php-fpm -t
+  configure_firewall_and_selinux
   systemctl enable --now php-fpm "$REDIS_SERVICE_NAME" varnish crond
   systemctl restart "$REDIS_SERVICE_NAME" || true
   systemctl restart php-fpm || true
 
   if [[ "$WEBSERVER" == "apache" ]]; then
-    systemctl enable --now httpd
     apachectl configtest
+    systemctl enable --now httpd
     systemctl restart httpd
   elif [[ "$WEBSERVER" == "hybrid" ]]; then
-    systemctl enable --now httpd nginx
     apachectl configtest
     nginx -t
+    systemctl enable --now httpd nginx
     systemctl restart httpd
     systemctl restart varnish
     systemctl restart nginx
@@ -506,8 +507,6 @@ EOF
     nginx -t
     systemctl restart nginx
   fi
-
-  configure_firewall_and_selinux
 
   write_progress 88 "running" "Configuring AutoSSL..." "ssl"
   if [[ -n "$DOMAIN" && -n "$EMAIL" ]]; then
