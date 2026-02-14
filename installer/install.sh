@@ -267,6 +267,19 @@ configure_env_defaults() {
   fi
 }
 
+apply_runtime_permissions() {
+  mkdir -p "$APP_DIR/storage/logs" "$APP_DIR/storage/cache"
+  touch "$APP_DIR/storage/logs/app.log"
+
+  chown -R www-data:www-data "$APP_DIR/storage"
+  chown www-data:www-data "$APP_DIR/public/adminer.php" 2>/dev/null || true
+  chown www-data:www-data "$APP_DIR/.env" 2>/dev/null || true
+
+  chmod 755 "$APP_DIR" "$APP_DIR/public" "$APP_DIR/storage" "$APP_DIR/storage/logs" "$APP_DIR/storage/cache" 2>/dev/null || true
+  chmod 664 "$APP_DIR/storage/logs/app.log" 2>/dev/null || true
+  chmod 640 "$APP_DIR/.env" 2>/dev/null || true
+}
+
 install_mode_docker() {
   write_progress 5 "running" "Starting Docker mode installation..." "start"
   install_docker_engine
@@ -422,8 +435,7 @@ EOF
   write_progress 62 "running" "Installing Adminer..." "adminer"
   curl -fsSL https://www.adminer.org/latest.php -o "$APP_DIR/public/adminer.php"
 
-  chown -R www-data:www-data "$APP_DIR/storage"
-  chown www-data:www-data "$APP_DIR/public/adminer.php" || true
+  apply_runtime_permissions
 
   write_progress 76 "running" "Enabling services (PHP-FPM/MySQL/Redis/Varnish/Web)..." "services"
   configure_native_redis_auth

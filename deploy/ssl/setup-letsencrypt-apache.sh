@@ -12,8 +12,6 @@ EMAIL="$2"
 if command -v apt-get >/dev/null 2>&1; then
   sudo apt-get update
   sudo apt-get install -y certbot python3-certbot-apache
-elif command -v dnf >/dev/null 2>&1; then
-  sudo dnf -y install certbot python3-certbot-apache
 else
   echo "Unsupported package manager. Install certbot manually."
   exit 1
